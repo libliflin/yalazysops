@@ -1,0 +1,25 @@
+# Build output
+/yls
+/yalazysops
+/dist/
+/bin/
+
+# Go
+*.exe
+*.test
+*.out
+vendor/
+go.work.sum
+
+# Editor / OS
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*~
+
+# Local-only — never commit decrypted secrets, ever, even by accident
+*.dec.yaml
+*.dec.json
+*.plaintext
+.secrets-runtime/
