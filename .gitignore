@@ -23,3 +23,8 @@ go.work.sum
 *.dec.json
 *.plaintext
 .secrets-runtime/
+
+# AI-assistant per-machine overrides. The shared .claude/settings.json IS
+# committed; .claude/settings.local.json is each contributor's personal
+# allowlist tweaks and should stay local.
+.claude/settings.local.json
