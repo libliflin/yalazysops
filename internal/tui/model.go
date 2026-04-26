@@ -20,6 +20,43 @@ import (
 	"github.com/libliflin/yalazysops/internal/tree"
 )
 
+// sopsBackend is the subset of sops operations the TUI needs. Allows
+// substitution in tests; production wiring uses *sopsx.Client directly,
+// which already satisfies this interface.
+type sopsBackend interface {
+	Decrypt(file string) (*secure.Buffer, error)
+	Extract(file string, path sopsx.Path) (*secure.Buffer, error)
+	Set(file string, path sopsx.Path, value *secure.Buffer) error
+	Unset(file string, path sopsx.Path) error
+}
+
+// gitBackend is the subset of git history operations the TUI needs. The
+// gitx package exposes these as package-level functions; gitAdapter below
+// bridges to the interface so production code keeps the simple call sites.
+type gitBackend interface {
+	LogForKey(file string, path sopsx.Path, limit int) ([]gitx.Commit, error)
+	ShowAt(sha, file string, path sopsx.Path) (*secure.Buffer, error)
+}
+
+// clipboardFunc is the signature secure.CopyToClipboard implements. Injected
+// so tests can capture clipboard writes without depending on a real X/Wayland
+// or pbcopy session.
+type clipboardFunc func(b *secure.Buffer, ttl time.Duration) error
+
+// gitAdapter bridges the package-level gitx functions to gitBackend.
+// gitx.ShowAt needs a *sopsx.Client because the historical decryption
+// pipeline runs `git show … | sops --extract …`; we keep that wiring here
+// rather than threading the sops client through the gitBackend interface.
+type gitAdapter struct{ sops *sopsx.Client }
+
+func (g *gitAdapter) LogForKey(file string, path sopsx.Path, limit int) ([]gitx.Commit, error) {
+	return gitx.LogForKey(file, path, limit)
+}
+
+func (g *gitAdapter) ShowAt(sha, file string, path sopsx.Path) (*secure.Buffer, error) {
+	return gitx.ShowAt(g.sops, sha, file, path)
+}
+
 // view enumerates the screens the TUI cycles through.
 type view int
 
@@ -35,8 +72,10 @@ const (
 // Model is the root Bubbletea model.
 type Model struct {
 	// Static
-	file string
-	sops *sopsx.Client
+	file      string
+	sops      sopsBackend
+	git       gitBackend
+	clipboard clipboardFunc
 
 	// Tree state
 	root     *tree.Node
@@ -80,11 +119,20 @@ type flatRow struct {
 	depth int
 }
 
-// New returns an initial Model. Loading the document is dispatched on Init.
+// New returns the production Model: real sops shell-out, real gitx, real
+// clipboard. cmd/yls calls this.
 func New(file string, c *sopsx.Client) Model {
+	return newModel(file, c, &gitAdapter{sops: c}, secure.CopyToClipboard)
+}
+
+// newModel is the test-friendly constructor — accepts arbitrary backends and
+// a clipboard sink. Kept unexported; tests live in package tui.
+func newModel(file string, sops sopsBackend, git gitBackend, cb clipboardFunc) Model {
 	return Model{
 		file:         file,
-		sops:         c,
+		sops:         sops,
+		git:          git,
+		clipboard:    cb,
 		expanded:     map[string]bool{},
 		view:         viewList,
 		clipboardTTL: 30 * time.Second,
@@ -126,7 +174,7 @@ type clearStatusMsg struct{}
 
 // --- commands ---------------------------------------------------------------
 
-func loadTreeCmd(c *sopsx.Client, file string) tea.Cmd {
+func loadTreeCmd(c sopsBackend, file string) tea.Cmd {
 	return func() tea.Msg {
 		buf, err := c.Decrypt(file)
 		if err != nil {
@@ -138,14 +186,14 @@ func loadTreeCmd(c *sopsx.Client, file string) tea.Cmd {
 	}
 }
 
-func extractCmd(c *sopsx.Client, file string, path sopsx.Path, purpose string) tea.Cmd {
+func extractCmd(c sopsBackend, file string, path sopsx.Path, purpose string) tea.Cmd {
 	return func() tea.Msg {
 		buf, err := c.Extract(file, path)
 		return valueExtractedMsg{purpose: purpose, path: path, buf: buf, err: err}
 	}
 }
 
-func setCmd(c *sopsx.Client, file string, path sopsx.Path, value *secure.Buffer) tea.Cmd {
+func setCmd(c sopsBackend, file string, path sopsx.Path, value *secure.Buffer) tea.Cmd {
 	return func() tea.Msg {
 		err := c.Set(file, path, value)
 		value.Wipe()
@@ -153,23 +201,23 @@ func setCmd(c *sopsx.Client, file string, path sopsx.Path, value *secure.Buffer)
 	}
 }
 
-func unsetCmd(c *sopsx.Client, file string, path sopsx.Path) tea.Cmd {
+func unsetCmd(c sopsBackend, file string, path sopsx.Path) tea.Cmd {
 	return func() tea.Msg {
 		err := c.Unset(file, path)
 		return writeDoneMsg{op: "unset", path: path, err: err}
 	}
 }
 
-func historyCmd(file string, path sopsx.Path) tea.Cmd {
+func historyCmd(g gitBackend, file string, path sopsx.Path) tea.Cmd {
 	return func() tea.Msg {
-		commits, err := gitx.LogForKey(file, path, 50)
+		commits, err := g.LogForKey(file, path, 50)
 		return historyLoadedMsg{path: path, commits: commits, err: err}
 	}
 }
 
-func historyCopyCmd(c *sopsx.Client, sha, file string, path sopsx.Path) tea.Cmd {
+func historyCopyCmd(g gitBackend, sha, file string, path sopsx.Path) tea.Cmd {
 	return func() tea.Msg {
-		buf, err := gitx.ShowAt(c, sha, file, path)
+		buf, err := g.ShowAt(sha, file, path)
 		return valueExtractedMsg{purpose: "history-copy", path: path, buf: buf, err: err}
 	}
 }
@@ -204,7 +252,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, clearStatusAfter(6 * time.Second)
 		}
 		defer msg.buf.Wipe()
-		if err := secure.CopyToClipboard(msg.buf, m.clipboardTTL); err != nil {
+		if err := m.clipboard(msg.buf, m.clipboardTTL); err != nil {
 			m.setError(fmt.Sprintf("clipboard: %v", err))
 			return m, clearStatusAfter(6 * time.Second)
 		}

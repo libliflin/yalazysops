@@ -15,7 +15,7 @@ func (m Model) startHistory(n *tree.Node) (tea.Model, tea.Cmd) {
 		return m, clearStatusAfter(3e9)
 	}
 	m.setStatus(fmt.Sprintf("Loading history for %s…", n.Path.Display()))
-	return m, historyCmd(m.file, n.Path)
+	return m, historyCmd(m.git, m.file, n.Path)
 }
 
 func (m Model) handleHistoryKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
@@ -39,7 +39,7 @@ func (m Model) handleHistoryKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		c := m.historyCommits[m.historyCursor]
 		m.setStatus(fmt.Sprintf("Copying %s @ %s…", m.historyPath.Display(), c.Short))
-		return m, historyCopyCmd(m.sops, c.SHA, m.file, m.historyPath)
+		return m, historyCopyCmd(m.git, c.SHA, m.file, m.historyPath)
 	}
 	return m, nil
 }
