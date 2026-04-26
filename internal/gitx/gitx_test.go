@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/williamlaffin/yalazysops/internal/sopsx"
+	"github.com/libliflin/yalazysops/internal/sopsx"
 )
 
 func requireGit(t *testing.T) {

@@ -6,9 +6,9 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	"github.com/williamlaffin/yalazysops/internal/secure"
-	"github.com/williamlaffin/yalazysops/internal/sopsx"
-	"github.com/williamlaffin/yalazysops/internal/tree"
+	"github.com/libliflin/yalazysops/internal/secure"
+	"github.com/libliflin/yalazysops/internal/sopsx"
+	"github.com/libliflin/yalazysops/internal/tree"
 )
 
 // startEdit opens the masked-input flow to replace an existing leaf value.

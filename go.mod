@@ -1,4 +1,4 @@
-module github.com/williamlaffin/yalazysops
+module github.com/libliflin/yalazysops
 
 go 1.24.2
 

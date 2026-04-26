@@ -34,7 +34,7 @@ linters-settings:
       # this lint here is intentional, not laziness.
       - G204
   goimports:
-    local-prefixes: github.com/williamlaffin/yalazysops
+    local-prefixes: github.com/libliflin/yalazysops
   misspell:
     locale: US
 

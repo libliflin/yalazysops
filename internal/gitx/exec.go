@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/williamlaffin/yalazysops/internal/secure"
-	"github.com/williamlaffin/yalazysops/internal/sopsx"
+	"github.com/libliflin/yalazysops/internal/secure"
+	"github.com/libliflin/yalazysops/internal/sopsx"
 )
 
 // ErrNotInRepo is returned when the file is not inside a git working tree.

@@ -6,7 +6,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	"github.com/williamlaffin/yalazysops/internal/tree"
+	"github.com/libliflin/yalazysops/internal/tree"
 )
 
 // startDelete opens the y/N confirm modal for the selected leaf.

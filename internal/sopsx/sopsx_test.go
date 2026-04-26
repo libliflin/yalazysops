@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/williamlaffin/yalazysops/internal/secure"
+	"github.com/libliflin/yalazysops/internal/secure"
 )
 
 func TestFormatExtract(t *testing.T) {

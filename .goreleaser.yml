@@ -81,9 +81,9 @@ release:
 # brews:
 #   - name: yls
 #     repository:
-#       owner: williamlaffin
+#       owner: libliflin
 #       name: homebrew-tap
-#     homepage: https://github.com/williamlaffin/yalazysops
+#     homepage: https://github.com/libliflin/yalazysops
 #     description: Screen-safe TUI for sops-encrypted secret files.
 #     license: MIT
 #     test: |
@@ -94,9 +94,9 @@ release:
 # nix:
 #   - name: yls
 #     repository:
-#       owner: williamlaffin
+#       owner: libliflin
 #       name: nur-packages
-#     homepage: https://github.com/williamlaffin/yalazysops
+#     homepage: https://github.com/libliflin/yalazysops
 #     description: Screen-safe TUI for sops-encrypted secret files.
 #     license: mit
 #
@@ -104,7 +104,7 @@ release:
 #   - id: yls-deb
 #     package_name: yls
 #     vendor: William Laffin
-#     homepage: https://github.com/williamlaffin/yalazysops
+#     homepage: https://github.com/libliflin/yalazysops
 #     maintainer: William Laffin <william.laffin@gmail.com>
 #     description: Screen-safe TUI for sops-encrypted secret files.
 #     license: MIT

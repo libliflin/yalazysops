@@ -11,9 +11,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/williamlaffin/yalazysops/internal/secure"
-	"github.com/williamlaffin/yalazysops/internal/sopsx"
-	"github.com/williamlaffin/yalazysops/internal/tree"
+	"github.com/libliflin/yalazysops/internal/secure"
+	"github.com/libliflin/yalazysops/internal/sopsx"
+	"github.com/libliflin/yalazysops/internal/tree"
 )
 
 func TestIntegration_EncryptDecryptRoundTrip(t *testing.T) {

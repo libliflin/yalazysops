@@ -8,8 +8,8 @@ package gitx
 import (
 	"time"
 
-	"github.com/williamlaffin/yalazysops/internal/secure"
-	"github.com/williamlaffin/yalazysops/internal/sopsx"
+	"github.com/libliflin/yalazysops/internal/secure"
+	"github.com/libliflin/yalazysops/internal/sopsx"
 )
 
 // Commit is a minimal commit record returned by Log.

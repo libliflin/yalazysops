@@ -13,8 +13,8 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/williamlaffin/yalazysops/internal/secure"
-	"github.com/williamlaffin/yalazysops/internal/sopsx"
+	"github.com/libliflin/yalazysops/internal/secure"
+	"github.com/libliflin/yalazysops/internal/sopsx"
 )
 
 // Node is a position in the key tree. A node is either a branch (Children

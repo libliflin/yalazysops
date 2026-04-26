@@ -15,8 +15,8 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	"github.com/williamlaffin/yalazysops/internal/sopsx"
-	"github.com/williamlaffin/yalazysops/internal/tui"
+	"github.com/libliflin/yalazysops/internal/sopsx"
+	"github.com/libliflin/yalazysops/internal/tui"
 )
 
 // Set by goreleaser via -ldflags at release time.

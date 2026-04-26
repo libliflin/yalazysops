@@ -10,7 +10,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/williamlaffin/yalazysops/internal/secure"
+	"github.com/libliflin/yalazysops/internal/secure"
 )
 
 func formatExtract(p Path) string {

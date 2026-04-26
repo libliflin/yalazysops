@@ -8,7 +8,7 @@
 package sopsx
 
 import (
-	"github.com/williamlaffin/yalazysops/internal/secure"
+	"github.com/libliflin/yalazysops/internal/secure"
 )
 
 // Path is a sequence of map keys (string) and list indexes (int) identifying

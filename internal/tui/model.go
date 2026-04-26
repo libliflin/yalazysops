@@ -14,10 +14,10 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	"github.com/williamlaffin/yalazysops/internal/gitx"
-	"github.com/williamlaffin/yalazysops/internal/secure"
-	"github.com/williamlaffin/yalazysops/internal/sopsx"
-	"github.com/williamlaffin/yalazysops/internal/tree"
+	"github.com/libliflin/yalazysops/internal/gitx"
+	"github.com/libliflin/yalazysops/internal/secure"
+	"github.com/libliflin/yalazysops/internal/sopsx"
+	"github.com/libliflin/yalazysops/internal/tree"
 )
 
 // view enumerates the screens the TUI cycles through.
