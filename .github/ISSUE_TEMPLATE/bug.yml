@@ -1,0 +1,86 @@
+name: Bug report
+description: Something is broken or behaves unexpectedly.
+title: "bug: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a bug. Before you submit, please
+        scrub any real secret values from your reproduction.
+
+  - type: input
+    id: yls-version
+    attributes:
+      label: yalazysops version
+      description: Output of `yls --version`.
+      placeholder: "v0.2.1"
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+      description: OS and version.
+      placeholder: "macOS 14.5 / Ubuntu 22.04 / Windows 11"
+    validations:
+      required: true
+
+  - type: input
+    id: sops-version
+    attributes:
+      label: sops version
+      description: Output of `sops --version`.
+      placeholder: "sops 3.9.0"
+    validations:
+      required: true
+
+  - type: textarea
+    id: tried
+    attributes:
+      label: What you tried
+      description: |
+        The exact command(s) you ran and any relevant config (`.sops.yaml`,
+        environment variables like `SOPS_AGE_KEY_FILE`, etc.). Redact real
+        recipient identifiers if you'd rather not share them.
+      placeholder: |
+        $ yls secrets/production.enc.yaml
+        # ...then pressed `e` on `postgres_password`...
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: What happened
+      description: Actual behavior. Include error messages verbatim.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+      description: What you thought would happen instead.
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: no-plaintext
+    attributes:
+      label: Plaintext safety
+      description: |
+        yalazysops is a security tool. Reproductions that paste real secret
+        values into a public bug tracker defeat the entire point.
+      options:
+        - label: I have confirmed that no plaintext secrets are leaked in this reproduction (commands, logs, screenshots, attached files).
+          required: true
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else
+      description: Logs, screenshots (with values masked), related issues.
+    validations:
+      required: false

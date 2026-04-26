@@ -1,0 +1,52 @@
+# golangci-lint config for yalazysops.
+# Targets golangci-lint >= 1.55. Reasonable, not maximal — this codebase is
+# ~700 LOC and we want signal, not noise.
+
+run:
+  timeout: 5m
+  tests: true
+
+linters:
+  disable-all: true
+  enable:
+    - errcheck
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - gofmt
+    - goimports
+    - gosec
+    - misspell
+    - unconvert
+    - unparam
+    - gocyclo
+
+linters-settings:
+  gocyclo:
+    # Modest threshold — flag genuinely tangled functions, not normal control flow.
+    min-complexity: 15
+  gosec:
+    excludes:
+      # G204: subprocess launched with variable. yalazysops shells out to
+      # `sops` and `git` by design; the whole point of the tool is that it
+      # delegates crypto to sops rather than reimplementing it. Suppressing
+      # this lint here is intentional, not laziness.
+      - G204
+  goimports:
+    local-prefixes: github.com/williamlaffin/yalazysops
+  misspell:
+    locale: US
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
+  exclude-rules:
+    # Tests can be a bit looser: ignore err-checks on cleanup helpers and
+    # allow higher cyclomatic complexity in table-driven tests.
+    - path: _test\.go
+      linters:
+        - errcheck
+        - gocyclo
+        - gosec
+        - unparam

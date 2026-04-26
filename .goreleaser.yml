@@ -1,0 +1,130 @@
+# GoReleaser config for yalazysops (binary: yls).
+# Schema version 2 — requires goreleaser >= v2.
+version: 2
+
+project_name: yalazysops
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: yls
+    main: ./cmd/yls
+    binary: yls
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - darwin
+      - linux
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w
+      - -X main.version={{.Version}}
+      - -X main.commit={{.ShortCommit}}
+      - -X main.date={{.Date}}
+
+archives:
+  - id: default
+    ids:
+      - yls
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    formats: [tar.gz]
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    files:
+      - README.md
+      - LICENSE
+
+checksum:
+  name_template: "{{ .ProjectName }}_{{ .Version }}_checksums.txt"
+  algorithm: sha256
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  use: git
+  sort: asc
+  groups:
+    - title: Features
+      regexp: '^.*?feat(\([[:word:]]+\))??!?:.+$'
+      order: 0
+    - title: Bug fixes
+      regexp: '^.*?fix(\([[:word:]]+\))??!?:.+$'
+      order: 1
+    - title: Other
+      order: 999
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
+      - "merge conflict"
+      - "Merge pull request"
+      - "Merge branch"
+
+release:
+  draft: false
+  prerelease: auto
+
+# ---------------------------------------------------------------------------
+# Distribution channels deferred to v1.0+ — uncomment and configure once the
+# corresponding tap / repo / signing infra exists.
+#
+# brews:
+#   - name: yls
+#     repository:
+#       owner: williamlaffin
+#       name: homebrew-tap
+#     homepage: https://github.com/williamlaffin/yalazysops
+#     description: Screen-safe TUI for sops-encrypted secret files.
+#     license: MIT
+#     test: |
+#       system "#{bin}/yls --version"
+#     dependencies:
+#       - name: sops
+#
+# nix:
+#   - name: yls
+#     repository:
+#       owner: williamlaffin
+#       name: nur-packages
+#     homepage: https://github.com/williamlaffin/yalazysops
+#     description: Screen-safe TUI for sops-encrypted secret files.
+#     license: mit
+#
+# nfpms:
+#   - id: yls-deb
+#     package_name: yls
+#     vendor: William Laffin
+#     homepage: https://github.com/williamlaffin/yalazysops
+#     maintainer: William Laffin <william.laffin@gmail.com>
+#     description: Screen-safe TUI for sops-encrypted secret files.
+#     license: MIT
+#     formats:
+#       - deb
+#       - rpm
+#     dependencies:
+#       - sops
+#
+# SBOM and artifact signing are also deferred for v1. When ready, enable:
+#
+# sboms:
+#   - artifacts: archive
+#
+# signs:
+#   - cmd: cosign
+#     artifacts: checksum
+#     args:
+#       - sign-blob
+#       - "--output-signature=${signature}"
+#       - "${artifact}"
+#       - --yes
+# ---------------------------------------------------------------------------
