@@ -9,9 +9,6 @@
 Screen-safe TUI for sops-encrypted secret files. Git history per field. Plaintext
 never hits your screen, never hits a temp file. Never leaves home row.
 
-> ⚠️ **Status: design doc, no code yet.** This README is the spec.
-> Issues, PRs, and drive-by feedback all welcome before v0.2 lands and the spec stops moving.
-
 ---
 
 ## Product Announcement (working backwards)
@@ -30,12 +27,14 @@ reveals every other secret in the file to whoever's watching the screen-share.
 > glance across our shared screen — Anthropic key, Postgres password, OAuth
 > secrets. We knew it was bad. We just had no alternative until yalazysops."
 
-yalazysops opens any sops-encrypted YAML or JSON file as a navigable list of
-keys. Keys are cleartext (sops's design — and a feature, not a bug). Values are
-masked. The user navigates with vim keys, copies one value to the system
-clipboard with `y`, edits one value with `e` — which opens a `getpass`-style
-prompt that masks input. Decrypted bytes live only in process memory and are
-overwritten with random bytes the moment the operation completes.
+yalazysops opens any sops-encrypted YAML or JSON file as a navigable
+tree of keys, with branches that expand and collapse like lazygit's
+file panel. Keys are cleartext (sops's design — and a feature, not a
+bug). Values are masked. The user navigates with vim keys, copies one
+value to the system clipboard with `y`, edits one value with `e` —
+which opens a `getpass`-style prompt that masks input. Decrypted bytes
+live only in process memory and are overwritten with random bytes the
+moment the operation completes.
 
 Three features distinguish yalazysops from existing sops wrappers:
 
@@ -81,20 +80,22 @@ overwritten after display.
 Plaintext flows through:
 - Your sops backend's decryption (network or local, depending on backend)
 - Process memory (overwritten with `crypto/rand` bytes after use)
-- The system clipboard (auto-clears in 30s by default; configurable)
+- The system clipboard (auto-clears 30s after copy; conditional clear, so a later user copy isn't clobbered)
 
 Never to: stdout, stderr, scrollback, `$EDITOR` temp files, swap files,
 shell history, terminal multiplexer logs.
 
 **Q: Does it support search?**
-Yes — `/` opens incremental fuzzy search over key names. Values are never
-indexed (they're encrypted at rest and we don't decrypt for indexing).
+Yes — `/` opens an incremental substring filter over key paths
+(`db.prod.password` matches `prod`). Values are never indexed (they're
+encrypted at rest and we don't decrypt for indexing).
 
 **Q: How do I add a new secret?**
-Press `n`, type the key name, get prompted for the value (masked), confirm.
-The file is re-encrypted via sops's normal flow; only the new value's
-`ENC[...]` block changes. Existing values keep their original IVs, so git
-diffs stay clean.
+Move the cursor onto the branch you want to add under (or onto a leaf
+inside it), press `n`, type the key name, then enter and confirm the
+value at masked prompts. The file is re-encrypted via sops's normal
+flow; only the new value's `ENC[...]` block changes. Existing values
+keep their original IVs, so git diffs stay clean.
 
 **Q: Multi-recipient files?**
 yalazysops respects whatever recipients are listed in your `.sops.yaml`.
@@ -111,51 +112,72 @@ too much work for the value-add.
 
 ## Customer Walkthrough
 
-```
-$ yalazysops secrets/production.enc.yaml
+The list view is a navigable tree. Branches expand and collapse with
+`l`/`h` (or arrow keys); leaves show a sha256 prefix as their value
+fingerprint. The bottom bar is anchored to the last row of the terminal —
+status messages appear above the help line and auto-clear:
 
-╭─ secrets/production.enc.yaml ──────────────────────────────╮
-│ ▸ anthropic_api_key              sha256:7a3f9c2b…          │
-│   auth_secret                    sha256:9b210e84…          │
-│   cloudflare_tunnel_token        sha256:4e1a55d7…          │
-│   google_client_id               sha256:c5f2aa01…          │
-│   google_client_secret           sha256:88d4ee99…          │
-│   postgres_password              sha256:2c19ff3a…          │
-│   redis_password                 sha256:6f08bb22…          │
-╰────────────────────────────────────────────────────────────╯
+```
+$ yls secrets/production.enc.yaml
+
+ secrets/production.enc.yaml
+
+   anthropic_api_key  sha256:7a3f9c2b…
+   auth_secret        sha256:9b210e84…
+   postgres_password  sha256:2c19ff3a…
+   ▾ db  (2)
+     ▾ prod  (4)
+       host          sha256:c5f2aa01…
+▸      password      sha256:88d4ee99…
+       port          sha256:e1a55d7c…
+       ssl_mode      sha256:6f08bb22…
+     ▸ dev  (4)
+   ▸ trusted_origins  (3)
+
+
+
+
+ ✓ Copied db.prod.password. Auto-clear in 30s.
  y copy   e edit   n new   d delete   ? history   / search   q quit
 ```
 
-`y` on `anthropic_api_key`:
-```
-✓ Copied anthropic_api_key to clipboard. Auto-clear in 30s.
-```
-
-`?` on `anthropic_api_key`:
-```
-╭─ History: anthropic_api_key ──────────────────────────────╮
-│ ▸ ed25322  2026-04-22  William L.  rotated after exposure │
-│   c73aabd  2026-04-13  William L.  initial value          │
-╰───────────────────────────────────────────────────────────╯
- y copy historical value   q back
-```
-
-`e` on a key:
-```
-╭─ Edit: anthropic_api_key ─────────────────────────────────╮
-│ Current: sha256:7a3f9c2b… (masked)                        │
-│                                                           │
-│ Enter new value: ●●●●●●●●●●●●●●●●●●●●●                    │
-│ Confirm:         ●●●●●●●●●●●●●●●●●●●●●                    │
-│                                                           │
-│ [enter] save   [esc] cancel                               │
-╰───────────────────────────────────────────────────────────╯
-```
+`?` on a leaf opens git history for that single value. Pressing `y` on a
+historical commit copies the value as it existed at that commit (sops
+re-decrypts the historical blob; your current keys must have been a
+recipient at that commit):
 
 ```
-✓ Updated anthropic_api_key in secrets/production.enc.yaml
-  git diff: 1 ENC[...] blob + lastmodified + mac
+ History: db.prod.password
+
+   ed25322  2026-04-22  William L.  rotated after exposure
+▸  c73aabd  2026-04-13  William L.  initial value
+
+ y/enter copy historical value   q/esc back
 ```
+
+`e` opens a masked two-step confirm. Plaintext only exists inside the
+input field — never echoed, never written to a temp file:
+
+```
+ Edit db.prod.password
+╭───────────────────────────────────────────────╮
+│ Current: (masked)                             │
+│                                               │
+│ Enter new value: ●●●●●●●●●●●●●●●●●●●          │
+│                                               │
+│ [enter] save   [esc] cancel                   │
+╰───────────────────────────────────────────────╯
+```
+
+After save, the file is re-encrypted in place via `sops set --value-stdin`
+(the new value never enters argv) and the status line confirms:
+
+```
+ ✓ Updated db.prod.password in production.enc.yaml
+```
+
+`git diff` after the edit shows one `ENC[...]` blob change plus the
+`lastmodified` and `mac` metadata — every other value keeps its original IV.
 
 ---
 
@@ -174,14 +196,15 @@ $ yalazysops secrets/production.enc.yaml
 | Component        | Implementation                                                                                |
 |------------------|-----------------------------------------------------------------------------------------------|
 | TUI              | [Bubbletea](https://github.com/charmbracelet/bubbletea) (Go) — same framework as lazygit, glow, k9s |
-| Sops integration | Shell out to the `sops` binary. Never re-implement crypto.                                    |
-| Memory hygiene   | Decrypted bytes in a single buffer; overwritten with `crypto/rand` after each operation.      |
-| Git history      | `git log --oneline -- <file>` + `git show <sha>:<file> \| sops -d --extract '["key"]'`        |
-| Clipboard        | `pbcopy` / `wl-copy` / `xclip` — 30s auto-clear by default                                    |
-| Fingerprint      | First 8 bytes (16 hex chars) of SHA-256 of the decrypted value, in-memory                     |
-| Masked input     | Bubbletea `textinput` with `EchoMode: EchoPassword`                                           |
+| Sops integration | Shell out to the `sops` binary (3.8+). Writes use `sops set --value-stdin` so plaintext never enters argv. Never re-implement crypto. |
+| Memory hygiene   | Decrypted bytes in a `secure.Buffer`; overwritten with `crypto/rand` after each operation. Best-effort under Go's GC; see [SECURITY.md](SECURITY.md). |
+| Git history      | `git log` for commits touching the file, then `git show <sha>:<file>` piped to `sops decrypt --extract '["key"]'` for the historical value. |
+| Clipboard        | `pbcopy` / `wl-copy` / `xclip` — 30s auto-clear by default. Conditional clear: only wipes the clipboard if it still matches what we wrote, so a later user copy survives. |
+| Fingerprint      | First 8 bytes (16 hex chars) of SHA-256 of the decrypted value, in-memory.                    |
+| Masked input     | Bubbletea `textinput` with `EchoMode: EchoPassword`.                                          |
 
-Roughly 600–800 lines of Go for v1.
+Cross-platform: macOS, Linux, and Windows binaries built per release;
+all three OSes covered in CI.
 
 ---
 
@@ -208,11 +231,15 @@ serendipitously appropriate imperative for a CLI.)
 ## Status
 
 - [x] v0.1 — design doc + README
-- [ ] v0.2 — read-only TUI: list, copy, fingerprint
-- [ ] v0.3 — edit / new / delete with masked prompts
-- [ ] v0.4 — git history per field
-- [ ] v0.5 — search, undo
-- [ ] v1.0 — `brew` / `apt` / `nix` packaging
+- [x] v0.2 — read-only TUI: list, copy, fingerprint
+- [x] v0.3 — edit / new / delete with masked prompts
+- [x] v0.4 — git history per field
+- [~] v0.5 — search done; undo deferred
+- [ ] v1.0 — `brew` / `apt` / `nix` packaging (binaries shipped per release; tap setup pending)
+
+The current shipped release is on the [Releases page](https://github.com/libliflin/yalazysops/releases/latest).
+Pre-built binaries for darwin/linux/windows × amd64/arm64 are attached
+to each release.
 
 ## License
 
