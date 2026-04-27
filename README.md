@@ -1,5 +1,9 @@
 # yalazysops
 
+[![CI](https://img.shields.io/github/actions/workflow/status/libliflin/yalazysops/ci.yml?branch=main&label=CI)](https://github.com/libliflin/yalazysops/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/libliflin/yalazysops?include_prereleases&sort=semver)](https://github.com/libliflin/yalazysops/releases/latest)
+[![License](https://img.shields.io/github/license/libliflin/yalazysops)](LICENSE)
+
 **Yet Another Lazy SOPS** — pronounced *yallah-zee-sops*.
 
 Screen-safe TUI for sops-encrypted secret files. Git history per field. Plaintext
