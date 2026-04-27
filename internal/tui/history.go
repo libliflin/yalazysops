@@ -45,34 +45,29 @@ func (m Model) handleHistoryKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) viewHistoryRender() string {
-	var b strings.Builder
-	b.WriteString(titleStyle.Render(" History: " + m.historyPath.Display() + " "))
-	b.WriteString("\n\n")
+	header := titleStyle.Render(" History: " + m.historyPath.Display() + " ")
+
+	var body strings.Builder
 	if len(m.historyCommits) == 0 {
-		b.WriteString(dimStyle.Render("  (no commits found for this file)"))
+		body.WriteString(dimStyle.Render("  (no commits found for this file)"))
 	} else {
 		for i, c := range m.historyCommits {
+			if i > 0 {
+				body.WriteString("\n")
+			}
 			line := fmt.Sprintf("  %s  %s  %-20s  %s",
 				c.Short, c.Date.Format("2006-01-02"), truncate(c.Author, 20), c.Subject)
 			if i == m.historyCursor {
 				line = cursorStyle.Render("▸") + line[1:]
 				line = selectedRowStyle.Render(line)
 			}
-			b.WriteString(line)
-			b.WriteString("\n")
+			body.WriteString(line)
 		}
 	}
-	b.WriteString("\n")
-	b.WriteString(helpStyle.Render("y/enter copy historical value   q/esc back"))
-	if m.status != "" {
-		b.WriteString("\n")
-		if m.statusErr {
-			b.WriteString(errorStyle.Render(m.status))
-		} else {
-			b.WriteString(statusStyle.Render(m.status))
-		}
-	}
-	return b.String()
+
+	return m.frame(header, body.String(), m.bottomBar(
+		"y/enter copy historical value   q/esc back",
+	))
 }
 
 func truncate(s string, n int) string {

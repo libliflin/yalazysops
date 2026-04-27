@@ -10,9 +10,11 @@ package tui
 import (
 	"fmt"
 	"path/filepath"
+	"strings"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 
 	"github.com/libliflin/yalazysops/internal/gitx"
 	"github.com/libliflin/yalazysops/internal/secure"
@@ -326,4 +328,42 @@ func (m Model) View() string {
 		return m.viewSearchRender()
 	}
 	return ""
+}
+
+// frame composes a header, body, and bottom bar into a constant-height
+// view. The bottom bar is anchored to row m.height so it never moves when
+// transient status lines come and go — that frame stability is what
+// prevents the "help line disappears when status auto-clears" rendering
+// glitch.
+//
+// Layout:
+//
+//	header       (1+ rows; usually a title + blank)
+//	body         (variable; the list / commit log / etc.)
+//	<spacer>     (blank rows; pads up to terminal height)
+//	bottomBar    (status if any, then help — always last row)
+//
+// If m.height is 0 (no WindowSizeMsg yet) we fall back to a plain
+// header / body / bar concatenation with one blank between segments.
+func (m Model) frame(header, body, bottomBar string) string {
+	header = strings.TrimRight(header, "\n")
+	body = strings.TrimRight(body, "\n")
+	bottomBar = strings.TrimRight(bottomBar, "\n")
+
+	if m.height <= 0 {
+		return header + "\n" + body + "\n\n" + bottomBar
+	}
+
+	used := lipgloss.Height(header) + lipgloss.Height(body) + lipgloss.Height(bottomBar)
+	if used >= m.height {
+		// Body is already taller than the terminal — let it overflow rather
+		// than truncate. Better to scroll than to silently drop rows.
+		return header + "\n" + body + "\n" + bottomBar
+	}
+	// Newline arithmetic: between two adjacent content blocks, we want K
+	// blank rows separated by row terminators — that's K+1 newlines (one
+	// to end the previous row, K-1 to terminate K-1 of the blanks, one to
+	// position the next block). Total rows: used + K = m.height.
+	blanks := m.height - used
+	return header + "\n" + body + strings.Repeat("\n", blanks+1) + bottomBar
 }

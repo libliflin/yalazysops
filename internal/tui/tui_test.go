@@ -252,6 +252,40 @@ func TestUpdate_DConfirmThenDeleteCallsUnset(t *testing.T) {
 	}
 }
 
+// TestView_HelpLineSurvivesStatusClear pins the bug from
+// https://github.com/libliflin/yalazysops issue (originally surfaced as
+// "save message timeout clear clears the help"): when a transient status
+// line auto-clears, the help line at the bottom must not vanish with it.
+//
+// Mechanism: frame() pads the View output to a constant height anchored on
+// m.height. Without that, bubbletea's frame differ can leave a stale row
+// when the View becomes one line shorter, taking the help line with it.
+func TestView_HelpLineSurvivesStatusClear(t *testing.T) {
+	m, _, _, _ := fixtureModel(t)
+	m = loadInitial(t, m)
+	m.height = 24
+	m.width = 80
+
+	withoutStatus := m.View()
+	wsLines := strings.Split(withoutStatus, "\n")
+	if !strings.Contains(wsLines[len(wsLines)-1], "q quit") {
+		t.Errorf("with no status, last line missing help: %q", wsLines[len(wsLines)-1])
+	}
+	if got := len(wsLines); got != m.height {
+		t.Errorf("View height with no status = %d, want %d", got, m.height)
+	}
+
+	m.setStatus("✓ Updated foo")
+	withStatus := m.View()
+	sLines := strings.Split(withStatus, "\n")
+	if !strings.Contains(sLines[len(sLines)-1], "q quit") {
+		t.Errorf("with status, last line missing help: %q", sLines[len(sLines)-1])
+	}
+	if got := len(sLines); got != m.height {
+		t.Errorf("View height with status = %d, want %d (must equal no-status height to prevent frame-shrinkage glitch)", got, m.height)
+	}
+}
+
 // --- teatest integration test ----------------------------------------------
 
 // TestTeatest_OpenExpandCopy is the seed integration test. It boots the

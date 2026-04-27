@@ -193,43 +193,53 @@ func (m Model) startCopy(n *tree.Node) (tea.Model, tea.Cmd) {
 
 func (m Model) viewListRender() string {
 	if m.root == nil {
-		return titleStyle.Render(" yalazysops ") + "\n\n  decrypting…"
+		return m.frame(
+			titleStyle.Render(" yalazysops "),
+			"  decrypting…",
+			helpStyle.Render("q quit"),
+		)
 	}
-	var b strings.Builder
 
-	b.WriteString(titleStyle.Render(" " + m.file + " "))
-	b.WriteString("\n\n")
+	header := titleStyle.Render(" " + m.file + " ")
 
+	var body strings.Builder
 	if len(m.flat) == 0 {
 		if m.searchQuery != "" {
-			b.WriteString(dimStyle.Render(fmt.Sprintf("  no keys match %q", m.searchQuery)))
+			body.WriteString(dimStyle.Render(fmt.Sprintf("  no keys match %q", m.searchQuery)))
 		} else {
-			b.WriteString(dimStyle.Render("  (empty)"))
+			body.WriteString(dimStyle.Render("  (empty)"))
 		}
 	} else {
 		for i, row := range m.flat {
-			b.WriteString(m.renderRow(i, row))
-			b.WriteString("\n")
+			if i > 0 {
+				body.WriteString("\n")
+			}
+			body.WriteString(m.renderRow(i, row))
 		}
 	}
 
-	b.WriteString("\n")
-	b.WriteString(helpStyle.Render(
+	return m.frame(header, body.String(), m.bottomBar(
 		"y copy   e edit   n new   d delete   ? history   / search   q quit",
 	))
-	if m.searchQuery != "" {
-		b.WriteString("\n")
-		b.WriteString(dimStyle.Render(fmt.Sprintf("filter: /%s", m.searchQuery)))
-	}
+}
+
+// bottomBar renders the status line (if any), the search filter (if any),
+// and the help line, in that order from top to bottom. Help is ALWAYS the
+// last line so the user's eye knows where to look.
+func (m Model) bottomBar(help string) string {
+	var lines []string
 	if m.status != "" {
-		b.WriteString("\n")
 		if m.statusErr {
-			b.WriteString(errorStyle.Render(m.status))
+			lines = append(lines, errorStyle.Render(m.status))
 		} else {
-			b.WriteString(statusStyle.Render(m.status))
+			lines = append(lines, statusStyle.Render(m.status))
 		}
 	}
-	return b.String()
+	if m.searchQuery != "" {
+		lines = append(lines, dimStyle.Render(fmt.Sprintf("filter: /%s", m.searchQuery)))
+	}
+	lines = append(lines, helpStyle.Render(help))
+	return strings.Join(lines, "\n")
 }
 
 func (m *Model) renderRow(i int, row flatRow) string {

@@ -100,7 +100,10 @@ func showAt(c *sopsx.Client, sha, file string, path sopsx.Path) (*secure.Buffer,
 	if bin == "" {
 		bin = "sops"
 	}
-	sopsCmd := exec.Command(bin, "decrypt", "--input-type", "yaml", "--extract", path.Extract(), "/dev/stdin")
+	// sops reads stdin natively when no file argument is given. We were
+	// previously passing /dev/stdin which broke Windows; the no-arg form
+	// works on every platform sops itself supports.
+	sopsCmd := exec.Command(bin, "decrypt", "--input-type", "yaml", "--extract", path.Extract())
 	sopsCmd.Stdin = gitOut
 	var sopsOut bytes.Buffer
 	var sopsErr bytes.Buffer
