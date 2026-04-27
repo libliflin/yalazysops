@@ -68,7 +68,11 @@ jobs:
               ASSET="sops-${SOPS_VERSION}.amd64.exe"
               mkdir -p "$RUNNER_TEMP/bin"
               curl -fsSL -o "$RUNNER_TEMP/bin/sops.exe" "https://github.com/getsops/sops/releases/download/${SOPS_VERSION}/${ASSET}"
+              # $GITHUB_PATH only affects subsequent steps, so verify via
+              # the explicit path here.
+              "$RUNNER_TEMP/bin/sops.exe" --version
               echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+              exit 0
               ;;
           esac
           sops --version
