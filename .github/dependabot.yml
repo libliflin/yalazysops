@@ -1,0 +1,63 @@
+version: 2
+
+# Dependabot config for yalazysops.
+#
+# Two ecosystems matter here:
+#   - gomod          → Go module deps (Bubbletea, sops-related libs, etc.)
+#   - github-actions → the SHA-pinned third-party actions in
+#                      .github/workflows/. Dependabot reads the trailing
+#                      `# vX.Y.Z` comment to know the human-readable
+#                      version, then updates both the SHA and the comment
+#                      when a new release lands.
+#
+# `cooldown` defers PRs until a release has been published for at least
+# the specified number of days. The point: if a malicious release ships
+# (typosquat, hijacked maintainer, leaked PAT), there's a window for the
+# community to spot it before we auto-update. Dependabot's cooldown
+# granularity is days, not hours; one day catches the obvious tampering
+# window without slowing real work meaningfully.
+#
+# Patches: 1-day cooldown — usually security or bug fixes, low risk.
+# Minors:  7-day cooldown — moderate risk.
+# Majors:  14-day cooldown — most likely to bring breaking changes; let
+#                            them soak.
+
+updates:
+  - package-ecosystem: gomod
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: America/New_York
+    open-pull-requests-limit: 5
+    cooldown:
+      default-days: 7
+      semver-major-days: 14
+      semver-minor-days: 7
+      semver-patch-days: 1
+    groups:
+      # Charm libraries (bubbletea, lipgloss, bubbles, x/exp/teatest) all
+      # ship together. Batch them into one PR to avoid five overlapping
+      # updates and to keep the test surface coherent.
+      charmbracelet:
+        patterns:
+          - "github.com/charmbracelet/*"
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: America/New_York
+    open-pull-requests-limit: 5
+    cooldown:
+      default-days: 7
+      semver-major-days: 14
+      semver-minor-days: 7
+      semver-patch-days: 1
+    groups:
+      actions-core:
+        patterns:
+          - "actions/*"

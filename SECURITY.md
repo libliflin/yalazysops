@@ -24,6 +24,30 @@ to a region we don't control. If your threat model requires guaranteed
 memory wiping, use a tool written against `mlock` / `mprotect` primitives in
 a non-GC language.
 
+## Things to know that aren't bugs
+
+A few user-side patterns can defeat the screen-safety guarantee even though
+yalazysops is doing its job correctly. Worth knowing:
+
+- **Pasting after copy.** `y` puts a value on your system clipboard with a
+  30-second auto-clear. If you paste into a window that's also being
+  screen-shared (or whose contents are being observed) before the
+  auto-clear fires, the value lands on the screen. yalazysops can't see
+  what you do with the clipboard. Treat copy as "the secret is now in
+  flight" until either the auto-clear runs or you've pasted into a
+  trusted destination.
+- **Inline environment variables in shell history.** Running
+  `SOPS_AGE_KEY_FILE=/path/to/key yls file.enc.yaml` puts the **path** to
+  your age key in your shell history. The key contents stay safe, but the
+  path is a useful reconnaissance signal for someone with later shell
+  access. Prefer placing your key at sops's default location
+  (`~/.config/sops/age/keys.txt`) so you can run `yls file.enc.yaml`
+  without inline env vars.
+- **Terminal scrollback for sops/git stderr.** When sops or git fails,
+  yalazysops surfaces the **error message** (not the input value) in the
+  status line. Error messages shouldn't contain plaintext, but if you find
+  a case where they do, that **is** an in-scope report.
+
 ## Reporting a vulnerability
 
 Please do **not** open a public issue for security reports.

@@ -1,5 +1,9 @@
 name: CI
 
+# All third-party actions are pinned to immutable SHAs with the readable
+# version in a trailing comment. Dependabot (.github/dependabot.yml)
+# updates both the SHA and the comment together.
+
 on:
   push:
     branches: [main]
@@ -14,31 +18,27 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4.3.1
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff  # v5.6.0
         with:
           go-version: "1.22"
           check-latest: true
 
-      - name: Install sops (action)
-        id: sops_action
-        continue-on-error: true
-        uses: getsops/sops-installer-action@v1
-        with:
-          version: latest
-
-      - name: Install sops (binary fallback)
-        if: steps.sops_action.outcome != 'success'
+      # No widely-trusted GitHub Action exists for installing sops, so we
+      # download the upstream binary directly from the sops release page.
+      # That's a smaller supply-chain surface than depending on a community
+      # action wrapper.
+      - name: Install sops
         shell: bash
         run: |
           set -euo pipefail
-          SOPS_VERSION="v3.9.0"
+          SOPS_VERSION="v3.12.2"
           case "${{ runner.os }}" in
             Linux)
               ARCH="$(uname -m)"
@@ -47,6 +47,9 @@ jobs:
                 aarch64|arm64) ASSET="sops-${SOPS_VERSION}.linux.arm64" ;;
                 *) echo "unsupported arch: $ARCH" >&2; exit 1 ;;
               esac
+              curl -fsSL -o /tmp/sops "https://github.com/getsops/sops/releases/download/${SOPS_VERSION}/${ASSET}"
+              chmod +x /tmp/sops
+              sudo mv /tmp/sops /usr/local/bin/sops
               ;;
             macOS)
               ARCH="$(uname -m)"
@@ -55,26 +58,30 @@ jobs:
                 arm64)  ASSET="sops-${SOPS_VERSION}.darwin.arm64" ;;
                 *) echo "unsupported arch: $ARCH" >&2; exit 1 ;;
               esac
+              curl -fsSL -o /tmp/sops "https://github.com/getsops/sops/releases/download/${SOPS_VERSION}/${ASSET}"
+              chmod +x /tmp/sops
+              sudo mv /tmp/sops /usr/local/bin/sops
               ;;
-            *)
-              echo "unsupported os: ${{ runner.os }}" >&2; exit 1
+            Windows)
+              ASSET="sops-${SOPS_VERSION}.exe"
+              curl -fsSL -o "$RUNNER_TEMP/sops.exe" "https://github.com/getsops/sops/releases/download/${SOPS_VERSION}/${ASSET}"
+              mv "$RUNNER_TEMP/sops.exe" "$RUNNER_TEMP/.sops.exe"
+              # Put it on PATH for subsequent steps.
+              mkdir -p "$RUNNER_TEMP/bin"
+              mv "$RUNNER_TEMP/.sops.exe" "$RUNNER_TEMP/bin/sops.exe"
+              echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
               ;;
           esac
-          curl -fsSL -o /tmp/sops "https://github.com/getsops/sops/releases/download/${SOPS_VERSION}/${ASSET}"
-          chmod +x /tmp/sops
-          sudo mv /tmp/sops /usr/local/bin/sops
           sops --version
 
-      - name: Verify sops on PATH
-        run: sops --version
-
       - name: Go module cache
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830  # v4.3.0
         with:
           path: |
             ~/go/pkg/mod
             ~/.cache/go-build
             ~/Library/Caches/go-build
+            ~\AppData\Local\go-build
           key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-
@@ -90,16 +97,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4.3.1
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff  # v5.6.0
         with:
           go-version: "1.22"
           check-latest: true
 
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v6
+        uses: golangci/golangci-lint-action@8564da7cb3c6866ed1da648ca8f00a258ef0c802  # v6.5.2
         with:
           version: latest
 
@@ -108,10 +115,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4.3.1
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff  # v5.6.0
         with:
           go-version: "1.22"
           check-latest: true
